@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Evidence QR Generator</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<style>
+body {
+  font-family: Arial;
+  background: #f4f6ff;
+  text-align: center;
+}
+
+.container {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  max-width: 500px;
+  margin: auto;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+input, button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+button {
+  background: #4CAF50;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #45a049;
+}
+
+#qrcode {
+  margin-top: 20px;
+}
+
+#output {
+  margin-top: 20px;
+  text-align: left;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<h2>Evidence QR Generator</h2>
+
+<label>Investigator Name:</label>
+<input type="text" id="investigator">
+
+<label>Evidence Number:</label>
+<input type="text" id="evidence" readonly>
+
+<label>Case Number:</label>
+<input type="text" id="case" readonly>
+
+<button onclick="generateQR()">Generate QR Code</button>
+<button onclick="downloadQR()">Download QR</button>
+<button onclick="clearForm()">Clear</button>
+
+<div id="qrcode"></div>
+<div id="output"></div>
+
+</div>
+
+<script>
+
+// AUTO NUMBER
+function generateAutoNumbers() {
+  const now = new Date();
+
+  const datePart = now.getFullYear().toString().slice(-2) +
+                   (now.getMonth()+1).toString().padStart(2,'0') +
+                   now.getDate().toString().padStart(2,'0');
+
+  const timePart = now.getHours().toString().padStart(2,'0') +
+                   now.getMinutes().toString().padStart(2,'0') +
+                   now.getSeconds().toString().padStart(2,'0');
+
+  document.getElementById("evidence").value = "EV-" + datePart + "-" + timePart;
+  document.getElementById("case").value = "CASE-" + datePart;
+}
+
+// GENERATE QR
+function generateQR() {
+
+  const investigator = document.getElementById("investigator").value;
+
+  if (!investigator) {
+    alert("Enter Investigator Name");
+    return;
+  }
+
+  generateAutoNumbers();
+
+  const evidence = document.getElementById("evidence").value;
+  const caseNum = document.getElementById("case").value;
+
+  const now = new Date();
+  const date = now.toLocaleDateString();
+  const time = now.toLocaleTimeString();
+
+  navigator.geolocation.getCurrentPosition(function(position) {
+
+    const lat = position.coords.latitude;
+    const lon = position.coords.longitude;
+
+    const locationLink = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
+
+    const data = 
+`Investigator: ${investigator}
+Evidence No: ${evidence}
+Case No: ${caseNum}
+Date: ${date}
+Time: ${time}
+Location: ${locationLink}`;
+
+    const qrContainer = document.getElementById("qrcode");
+    qrContainer.innerHTML = "";
+
+    // FIXED QR GENERATION
+    setTimeout(() => {
+      new QRCode(qrContainer, {
+        text: data,
+        width: 200,
+        height: 200
+      });
+    }, 100);
+
+    // SHOW DETAILS
+    document.getElementById("output").innerHTML = `
+      <h3>Generated Details</h3>
+      <p><b>Investigator:</b> ${investigator}</p>
+      <p><b>Evidence No:</b> ${evidence}</p>
+      <p><b>Case No:</b> ${caseNum}</p>
+      <p><b>Date:</b> ${date}</p>
+      <p><b>Time:</b> ${time}</p>
+      <p><b>Latitude:</b> ${lat}</p>
+      <p><b>Longitude:</b> ${lon}</p>
+      <p><b>Location:</b> <a href="${locationLink}" target="_blank">Open in Maps</a></p>
+    `;
+
+  }, function(error) {
+    alert("Location error: " + error.message);
+  }, {
+    enableHighAccuracy: true,
+    timeout: 10000,
+    maximumAge: 0
+  });
+}
+
+// DOWNLOAD QR
+function downloadQR() {
+  const img = document.querySelector("#qrcode img");
+
+  if (!img) {
+    alert("Generate QR first");
+    return;
+  }
+
+  const link = document.createElement("a");
+  link.href = img.src;
+  link.download = "evidence_qr.png";
+  link.click();
+}
+
+// CLEAR
+function clearForm() {
+  document.getElementById("investigator").value = "";
+  document.getElementById("evidence").value = "";
+  document.getElementById("case").value = "";
+  document.getElementById("qrcode").innerHTML = "";
+  document.getElementById("output").innerHTML = "";
+}
+
+</script>
+
+</body>
+</html>
